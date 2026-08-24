@@ -17,7 +17,7 @@ app.get('/redir', (req, res) => {
     const port = req.query.port || '8080';
     
     // Doğrudan IP ve portu birleştiriyoruz
-    const target = `http://127.0.0.1:${port}/`;
+    const target = `http://[::1]:${port}/`;
     
     console.log(`[!] Port Taraması Tetiklendi -> Hedef: ${target}`);
     
