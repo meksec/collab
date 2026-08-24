@@ -34,7 +34,7 @@ app.get('/exfil', (req, res) => {
 });
 
 app.use((req, res) => {
-    return res.status(200).send("Collaborator OK");
+    return res.status(200).send("Collaborator SUCCESS");
 });
 
 app.listen(3000, () => console.log("Metadata Avcısı 3000 portunda devrede!"));
