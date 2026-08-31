@@ -53,7 +53,7 @@ app.all('/', (req, res) => {
 
 // 2. Özel Yakalama Endpoint'i (Görsel veya dosya süsü vermek istersen)
 app.all('/yakalandi', (req, res) => {
-    res.status(200.send('<h1>Hedef başarıyla yakalandı ve loglandı!</h1>'));
+    res.status(200).send('<h1>Hedef başarıyla yakalandı ve loglandı!</h1>');
 });
 
 // Sunucuyu başlat
