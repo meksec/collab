@@ -5,7 +5,8 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.all('*', (req, res) => {
+// app.use kullanarak tüm istekleri yakalıyoruz
+app.use((req, res) => {
     const timestamp = new Date().toISOString();
     const clientIp = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
