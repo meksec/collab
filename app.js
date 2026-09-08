@@ -8,7 +8,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // 1. AŞAMA: İlk gelen istekleri yakalayan ve yönlendiren rota
 app.use((req, res, next) => {
-    // Eğer istek zaten ikinci aşamadaki /yakalandi rotasına geldiyse burayı geç, alt taraftakine gitsin
+    // Eğer istek zaten ikinci aşamadaki /yakalandi rotasına geldiyse burayı geç
     if (req.path === '/yakalandi') {
         return next();
     }
@@ -32,11 +32,10 @@ app.use((req, res, next) => {
     }
     
     console.log('\n--- 📋 HEADERS ---');
-    console.dir(req.headers, { depth: null, colors: true));
+    console.dir(req.headers, { depth: null, colors: true }); // DÜZELTİLDİ: Tek parantez yapıldı
     console.log('='.repeat(60) + '\n');
 
-    // Hedef URL: Aynı sunucunun /yakalandi endpoint'i (Redirect zinciri testi)
-    // Not: Render projenin dışarıdan erişilebilir tam URL'sini buraya yazmalısın.
+    // Hedef URL: Aynı sunucunun /yakalandi endpoint'i
     const TARGET_URL = `https://${req.get('host')}/yakalandi`;
 
     console.log(`⚡ [REDIRECT] İstemci ikinci hedefe fırlatılıyor ➔ ${TARGET_URL}`);
@@ -44,7 +43,6 @@ app.use((req, res, next) => {
     // HTTP 302 ile kendi içimizdeki ikinci rotaya yönlendiriyoruz
     return res.redirect(302, TARGET_URL);
 });
-
 
 // 2. AŞAMA: Canva worker yönlendirmeyi takip ederse düşeceği tuzak rota (/yakalandi)
 app.get('/yakalandi', (req, res) => {
@@ -54,7 +52,7 @@ app.get('/yakalandi', (req, res) => {
                      req.socket.remoteAddress;
 
     console.log('\n' + '🔥'.repeat(30));
-    console.log(`[${timestamp}] 🚀 BAŞARILI! 2. ADIM: İSTEK YÖNLENDİRMEDEN (REDIRECT) GEÇİP BURAYA ULAŞTI!`);
+    console.log(`[${timestamp}] 🚀 BAŞARILI! 2. ADIM: İSTEK YÖNLENDİRMEDEN GEÇİP BURAYA ULAŞTI!`);
     console.log('🔥'.repeat(30));
     console.log(`🔹 Gelen IP (Canva Worker IP'si olabilir): ${clientIp}`);
     console.log(`🔹 Headers:`, req.headers);
