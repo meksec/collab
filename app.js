@@ -1,5 +1,4 @@
 const express = require('express');
-const axios = require('axios'); // İç istekler için axios kullanıyoruz
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -28,25 +27,25 @@ app.use(async (req, res) => {
     console.log('\n--- 📋 HEADERS (BAŞLIKLAR) ---');
     console.dir(req.headers, { depth: null, colors: true });
 
-    // Eğer istekte bir ?url= parametresi varsa, sunucu arka planda o adrese gitsin!
+    // Eğer istekte ?url= parametresi varsa, yerleşik fetch ile hedefe zıplayalım
     if (req.query && req.query.url) {
         const targetUrl = req.query.url;
         console.log(`\n🚀 [PROXY] Hedef adrese istek atılıyor: ${targetUrl}`);
         
         try {
-            // İç ağ veya metadata adresine sunucu üzerinden talep gönderiyoruz
-            const response = await axios.get(targetUrl, {
-                timeout: 5000,
-                validateStatus: () => true // Tüm HTTP status kodlarını kabul et (403, 500 vb.)
+            const response = await fetch(targetUrl, {
+                method: 'GET',
+                redirect: 'follow'
             });
+            
+            const responseText = await response.text();
 
             console.log(`\n✅ [PROXY BAŞARILI] Hedef yanıt döndürdü! Status: ${response.status}`);
             console.log('--- 📄 HEDEF İÇERİK (METADATA / DATA) ---');
-            console.log(typeof response.data === 'object' ? JSON.stringify(response.data, null, 2) : response.data);
+            console.log(responseText);
             console.log('----------------------------------------');
 
-            // Elde edilen veriyi Canva'ya geri verelim ki hata (invalid_file) vermesin
-            return res.status(response.status).send(response.data);
+            return res.status(response.status).send(responseText);
 
         } catch (error) {
             console.log(`\n❌ [PROXY HATASI] Hedefe ulaşılamadı: ${error.message}`);
