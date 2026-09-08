@@ -5,6 +5,12 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Çok küçük, geçerli 1x1 piksellik kırmızı bir PNG görselinin base64 hali
+const pngBuffer = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64'
+);
+
 app.use((req, res) => {
     const timestamp = new Date().toISOString();
     const clientIp = req.headers['cf-connecting-ip'] || 
@@ -12,30 +18,17 @@ app.use((req, res) => {
                      req.socket.remoteAddress;
 
     console.log('\n' + '='.repeat(60));
-    console.log(`[${timestamp}] 🎯 YENİ İSTEK YAKALANDI!`);
-    console.log('='.repeat(60));
-    console.log(`🔹 Yol (Path)      : ${req.path}`);
-    console.log(`🔹 Orijinal URL    : ${req.originalUrl}`);
-    console.log(`🔹 Yöntem (Method) : ${req.method}`);
-    console.log(`🔹 Gerçek IP       : ${clientIp}`);
-
-    if (req.query && Object.keys(req.query).length > 0) {
-        console.log('\n--- 🔍 QUERY PARAMETRELERI ---');
-        console.dir(req.query, { depth: null, colors: true });
-    }
-
-    console.log('\n--- 📋 HEADERS (BAŞLIKLAR) ---');
-    console.dir(req.headers, { depth: null, colors: true });
-
+    console.log(`[${timestamp}] 🎯 CANVA WORKER PNG İÇİN BAĞLANDI!`);
+    console.log(`🔹 Gerçek IP : ${clientIp}`);
+    console.log(`🔹 User-Agent: ${req.headers['user-agent']}`);
     console.log('='.repeat(60) + '\n');
 
-    return res.status(200).send({
-        status: "success",
-        message: "Log alındı!",
-        your_ip: clientIp
-    });
+    // Canva'nın kesinlikle kabul edeceği gerçek bir PNG binary verisi dönüyoruz
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Length', pngBuffer.length);
+    return res.status(200).end(pngBuffer);
 });
 
 app.listen(PORT, () => {
-    console.log(`Dinleme sunucusu ${PORT} portunda aktif... 🚀`);
+    console.log(`PNG Mock Server ${PORT} portunda aktif... 🚀`);
 });
